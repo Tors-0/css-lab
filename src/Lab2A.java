@@ -13,11 +13,9 @@ public class Lab2A {
         double f1 = 32.00;
         temperaturePrinter(f1, kelvins(f1));
 
-        // TODO: Add at least 5 additional tests
-
         // secondTime tests
         System.out.println("\nTesting secondTime:");
-        // TODO: Declare a scanner
+
         Scanner sc = new Scanner(System.in);
         System.out.println("Please input total seconds as an integer");
         
@@ -27,7 +25,6 @@ public class Lab2A {
         // inSeconds tests
         System.out.println("\nTesting inSeconds:");
         inSeconds(1, 5, 1); // Expect: 3901
-        // TODO: Add tests and outputs
 
         System.out.println("\ntesting kelvins():");
 
@@ -83,7 +80,7 @@ public class Lab2A {
 	// seconds: the time in seconds
     public static void secondTime(int seconds){
         int originalSecVal = seconds;
-        // TODO
+
         int hours = seconds / secToHrFactor;
         seconds %= secToHrFactor;
 
@@ -96,8 +93,6 @@ public class Lab2A {
 	// inSeconds
      	// This method converts from hours:minutes:seconds to seconds, and prints the
 	// result to the console.
-
-    	// TODO: You figure out the declaration and the method!
     public static void inSeconds(int hr, int min, int sec) {
         int seconds = sec;
 
