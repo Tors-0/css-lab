@@ -5,13 +5,11 @@ public class Testing {
 //        System.out.println(add(a, b)); // == 1523944
 //        System.out.println(a + b); // == 1523944
 
-        boolean decryptMode = true;
-        String data = "Z X Z F Q Q D Y M J R T X Y H T R R T S Q J Y Y J W N X J G Z Y S T Y F Q B F D X ";
-        int key = 5;
-        System.out.println(caesarCipher(data, key, decryptMode));
-
-        System.out.println(true);
-        System.out.println(false);
+        long rice = 1;
+        for (int i = 0; i < 30; i++) {
+            System.out.printf("%6s: %15s%n", "day " + (i+1), rice);
+            rice *= 2;
+        }
     }
     public static int add(int a, int b) {
         byte bitSize = 31;
@@ -48,5 +46,11 @@ public class Testing {
             output += c;
         }
         return output;
+    }
+    public static void runCaeserCipher() {
+        boolean decryptMode = true;
+        String data = "Z X Z F Q Q D Y M J R T X Y H T R R T S Q J Y Y J W N X J G Z Y S T Y F Q B F D X ";
+        int key = 5;
+        System.out.println(caesarCipher(data, key, decryptMode));
     }
 }
