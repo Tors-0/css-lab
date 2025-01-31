@@ -1,5 +1,6 @@
 // Lab3B.java
 // Part 2
+// compiled and tested in Java 21
 
 public class Lab3B {
 	public static void main(String[] args) {
@@ -33,7 +34,9 @@ public class Lab3B {
 	// num1: first value
 	// num2: second value
 	// num3: third value
-	public static double smallestOfThree(double num1, double num2, double num3) {
+	public static double smallestOfThree(
+			double num1, double num2, double num3
+	) {
 		if (num1 <= num2 && num1 <= num3) {
 			return num1;
 		} else if (num2 <= num1 && num2 <= num3) {

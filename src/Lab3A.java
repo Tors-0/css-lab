@@ -1,5 +1,6 @@
 // Lab3A.java
 // Part 1
+// compiled and tested in Java 21
 
 import java.util.Scanner;
 
@@ -14,8 +15,10 @@ public class Lab3A {
 
 		// multipleOfChecker tests
 		System.out.println("\nTesting multipleOfChecker:");
-		multipleOfChecker(16, 4); // Should print "16 is a multiple of 4"
-		multipleOfChecker(11, 3); // Should print "11 is not a multiple of 3"
+		// Should print "16 is a multiple of 4"
+		multipleOfChecker(16, 4);
+		// Should print "11 is not a multiple of 3"
+		multipleOfChecker(11, 3);
 		multipleOfChecker(100000001, 17);
 		multipleOfChecker(4096, 64);
 
@@ -47,7 +50,8 @@ public class Lab3A {
 	// sorts results into bucket, printing result
 	public static void sqrtSumBucketer() {
 		Scanner scanny = new Scanner(System.in);
-		System.out.println("Please enter two double values, separated by spaces");
+		System.out.println("Please enter two double values, " +
+				"separated by spaces");
 		double num1 = scanny.nextDouble();
 		double num2 = scanny.nextDouble();
 		scanny.nextLine();
