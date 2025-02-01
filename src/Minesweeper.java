@@ -47,17 +47,23 @@ public class Minesweeper {
     static int mines = 0;
     static int minesRemaining;
     static final char MINE_CHAR = 'X';
-    static final char FLAG_CHAR = 'F';
-    static final String UNOPENED_SPACE = "[ ]";
+    static final char FLAG_CHAR = '\u2691';
+    static final char BLANK_CHAR = ' ';
+    static final String UNOPENED_SPACE = "[\u25a0]";
 
     static int difficulty;
 
-    static boolean gameOver = false;
+    static boolean gameOverBad = false;
+    static boolean gameOverWin = false;
     // track this so user cant lose on turn 1
     static boolean isFirstClick = true;
     static boolean invalidInput = false;
 
-    // hold spaces :O
+    // timekeeping for game score
+    static long startTime;
+    static long totalTime;
+
+    // board tile indices for renumbering board
     static List<Integer> mineLocations = new ArrayList<>();
     static List<Integer> emptyBoardSpaces = new ArrayList<>();
 
@@ -70,9 +76,15 @@ public class Minesweeper {
 
         populateBoardNumbers();
 
+        startTime = System.currentTimeMillis();
+
         do {
+            // user input, input parsing, turn execution
             gameLoop();
-        } while (!gameOver);
+
+            // check if all non-mine tiles have been discovered
+            gameOverWin = evaluateGameWin();
+        } while (!gameOverBad && !gameOverWin);
 
         revealBoardOnGameOver();
     }
@@ -82,8 +94,6 @@ public class Minesweeper {
             System.out.println("Invalid Input");
             invalidInput = false;
         }
-
-        evaluateGameWin();
 
         printGameBoard();
 
@@ -102,13 +112,14 @@ public class Minesweeper {
         }
     }
 
-    private static void evaluateGameWin() {
+    private static boolean evaluateGameWin() {
         for (Integer i : emptyBoardSpaces) {
-            if (!revealGameBoard[i]) return;
+            // if any empty space hasn't been turned, the game isn't over
+            if (!revealGameBoard[i]) return false;
         }
 
-        System.out.println("You win!");
-        System.exit(0);
+        // if we pass every empty space without finding an unturned one
+        return true;
     }
 
     private static void evaluateUserAction(String choice) {
@@ -137,7 +148,7 @@ public class Minesweeper {
     private static void executeMarkAction(int i) {
         if (gameBoard[i] == FLAG_CHAR) {
             minesRemaining++;
-            gameBoard[i] = ' ';
+            gameBoard[i] = BLANK_CHAR;
             revealGameBoard[i] = false;
             populateBoardNumbers();
         } else {
@@ -152,9 +163,12 @@ public class Minesweeper {
             if (isFirstClick) {
                 moveMineOnFirstClick(index);
             } else {
-                gameOver = true;
+                gameOverBad = true;
             }
         } else {
+            if (gameBoard[index] == FLAG_CHAR) {
+                executeMarkAction(index);
+            }
             if (!revealGameBoard[index] && gameBoard[index] != MINE_CHAR) {
                 propagateBoardDiscovery(index);
             }
@@ -175,7 +189,7 @@ public class Minesweeper {
         revealGameBoard[i] = true;
 
         // early return if tile has number
-        if (gameBoard[i] != ' ' && !isFirstClick) return;
+        if (gameBoard[i] != BLANK_CHAR && !isFirstClick) return;
         isFirstClick = false;
 
         boolean onLeftEdge = i % boardWidth == 0;
@@ -225,42 +239,61 @@ public class Minesweeper {
 
     private static void revealBoardOnGameOver() {
         System.out.print("\n\n Opening Final Game Board...\n\n");
+
+        if (gameOverWin) {
+            for (Integer i : emptyBoardSpaces) {
+                gameBoard[i] = BLANK_CHAR;
+            }
+        }
+
         Arrays.fill(revealGameBoard, true);
         printGameBoard();
+
+        if (gameOverWin) {
+            totalTime = System.currentTimeMillis() - startTime;
+            System.out.println("You win!\nYour time: " + (totalTime / 1000));
+        } else if (gameOverBad) {
+            System.out.println("Game over.");
+        }
     }
 
     private static void printGameBoard() {
         char c = 'a';
         for (int i = -1; i < boardHeight; i++) {
             for (int j = -1; j < boardWidth; j++) {
-                if (i == -1) {
-                    if (j == -1) {
-                        System.out.print("   ");
-                    } else {
-                        System.out.printf("%s%3s%s", underline, j, resetCode);
-                    }
-                } else if (j == -1) {
-                    System.out.printf("%3s", c + "|");
-                    c++;
-                } else {
-                    int index = (i * boardWidth) + j;
-                    char current = gameBoard[index];
-                    if (current == MINE_CHAR) {
-                        System.out.printf("%3s",
-                                gameOver ? formatTile(current) :
-                                        UNOPENED_SPACE
-                        );
-                    } else {
-                        if (revealGameBoard[index]) {
-                            System.out.print(formatTile(current));
-                        } else {
-                            System.out.print(UNOPENED_SPACE);
-                        }
-                    }
-                }
+                c = printGameBoardChar(i, j, c);
             }
             System.out.println(); // newline after printing full board row
         }
+    }
+
+    private static char printGameBoardChar(int i, int j, char c) {
+        if (i == -1) {
+            if (j == -1) {
+                System.out.print("   ");
+            } else {
+                System.out.printf("%s%3s%s", underline, j, resetCode);
+            }
+        } else if (j == -1) {
+            System.out.printf("%3s", c + "|");
+            c++;
+        } else {
+            int index = (i * boardWidth) + j;
+            char current = gameBoard[index];
+            if (current == MINE_CHAR) {
+                System.out.printf("%3s",
+                        gameOverBad ? formatTile(current) :
+                                UNOPENED_SPACE
+                );
+            } else {
+                if (revealGameBoard[index]) {
+                    System.out.print(formatTile(current));
+                } else {
+                    System.out.print(UNOPENED_SPACE);
+                }
+            }
+        }
+        return c;
     }
 
     private static String formatTile(char num) {
@@ -273,7 +306,7 @@ public class Minesweeper {
             case '6' -> tile6Code + " " + num + " " + resetCode;
             case '7' -> tile7Code + " " + num + " " + resetCode;
             case '8' -> tile8Code + " " + num + " " + resetCode;
-            case MINE_CHAR -> " " + MINE_CHAR + " ";
+            case MINE_CHAR -> "{" + MINE_CHAR + "}";
             case FLAG_CHAR -> " " + FLAG_CHAR + " ";
             default -> "   ";
         };
@@ -329,8 +362,8 @@ public class Minesweeper {
 
     private static void repopulateMinefield() {
         for (int i = 0; i < gameBoard.length; i++) {
-            if (gameBoard[i] != 'F') {
-                gameBoard[i] = ' ';
+            if (gameBoard[i] != FLAG_CHAR) {
+                gameBoard[i] = BLANK_CHAR;
             }
         }
         for (Integer mineLocation : mineLocations) {
@@ -390,7 +423,7 @@ public class Minesweeper {
         }
         gameBoard = new char[boardHeight * boardWidth];
         revealGameBoard = new boolean[boardHeight * boardWidth];
-        Arrays.fill(gameBoard, ' ');
+        Arrays.fill(gameBoard, BLANK_CHAR);
         Arrays.fill(revealGameBoard, false);
 
         minesRemaining = mines;
