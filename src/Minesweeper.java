@@ -40,6 +40,8 @@ public class Minesweeper {
     // board properties
     static char[] gameBoard;
     static boolean[] revealGameBoard;
+    static boolean[] debugRevealGameBoard;
+    static boolean isDebugMode = false;
     static int boardWidth;
     static int boardHeight;
 
@@ -91,8 +93,12 @@ public class Minesweeper {
 
     private static void gameLoop() {
         if (invalidInput) {
-            System.out.println("Invalid Input");
+            System.out.println("Invalid Input!");
             invalidInput = false;
+        }
+
+        if (!isDebugMode) {
+            debugRevealGameBoard = revealGameBoard.clone();
         }
 
         printGameBoard();
@@ -108,11 +114,27 @@ public class Minesweeper {
             printHelpGuide();
         } else if (choice.matches("(mark|dig|m|d) [a-z][0-9]{1,2}")) {
             evaluateUserAction(choice);
-            isFirstClick = false;
+        } else if (choice.startsWith("debug.")) {
+            evaluateDebugAction(choice);
+        } else {
+            invalidInput = true;
+        }
+    }
+
+    private static void evaluateDebugAction(String choice) {
+        if ("debug.open".equals(choice)) {
+            debugRevealGameBoard = revealGameBoard.clone();
+            Arrays.fill(revealGameBoard, true);
+            isDebugMode = true;
+        } else if ("debug.close".equals(choice)) {
+            revealGameBoard = debugRevealGameBoard.clone();
+            isDebugMode = false;
         }
     }
 
     private static boolean evaluateGameWin() {
+        if (isDebugMode) return false;
+
         for (Integer i : emptyBoardSpaces) {
             // if any empty space hasn't been turned, the game isn't over
             if (!revealGameBoard[i]) return false;
@@ -142,6 +164,9 @@ public class Minesweeper {
             executeMarkAction(index);
         } else if ("d".equals(action) || "dig".equals(action)) {
             executeDigAction(index);
+            isFirstClick = false;
+        } else {
+            invalidInput = true;
         }
     }
 
@@ -185,7 +210,7 @@ public class Minesweeper {
     }
 
     private static void propagateBoardDiscovery(int i) {
-        if (revealGameBoard[i]) return; // early return is tile already open
+        if (revealGameBoard[i]) return; // early return if tile already open
         revealGameBoard[i] = true;
 
         // early return if tile has number
@@ -252,6 +277,10 @@ public class Minesweeper {
         if (gameOverWin) {
             totalTime = System.currentTimeMillis() - startTime;
             System.out.println("You win!\nYour time: " + (totalTime / 1000));
+            System.out.println("Mines flagged: " +
+                    (mines - minesRemaining) + " / " + mines);
+            System.out.println("Avg time/mine: " + (totalTime / 1000 / mines));
+
         } else if (gameOverBad) {
             System.out.println("Game over.");
         }
@@ -378,7 +407,7 @@ public class Minesweeper {
         while (true) {
             System.out.println("Please select a difficulty (0-4): ");
             diffString = userIn.nextLine();
-            String[] legalDifficulties = {"0", "1", "2", "3", "4"};
+            String[] legalDifficulties = {"0", "1", "2", "3", "4", "-1"};
             if (Arrays.asList(legalDifficulties).contains(diffString)) {
                 break;
             }
@@ -420,9 +449,22 @@ public class Minesweeper {
                 mines = LUDICROUS_MINES;
                 difficultyStr = "Ludicrous";
             }
+            default -> {
+                System.out.println("Custom difficulty:\n" +
+                        "Enter board height (1-26) and width (1-99)," +
+                        "separated by spaces (whole numbers only):");
+                boardHeight = userIn.nextInt();
+                boardWidth = userIn.nextInt();
+                userIn.nextLine();
+
+                float minePercentage = (float) ((Math.random() * 0.28) + 0.12);
+                mines = (int) (boardWidth * boardHeight * minePercentage);
+                difficultyStr = "Custom";
+            }
         }
         gameBoard = new char[boardHeight * boardWidth];
         revealGameBoard = new boolean[boardHeight * boardWidth];
+        debugRevealGameBoard = new boolean[boardHeight * boardWidth];
         Arrays.fill(gameBoard, BLANK_CHAR);
         Arrays.fill(revealGameBoard, false);
 
