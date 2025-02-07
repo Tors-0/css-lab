@@ -8,11 +8,9 @@ public class Testing {
 //        System.out.println(add(a, b)); // == 1523944
 //        System.out.println(a + b); // == 1523944
 
-        System.out.println(System.out);
         PrintStream out = System.out;
-        System.out.println(System.out);
-        System.out.println(out);
-        out.println("hi");
+
+        out.println(Integer.toBinaryString(-1));
     }
     public static int add(int a, int b) {
         byte bitSize = 31;
