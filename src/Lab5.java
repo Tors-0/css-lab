@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class Lab5 {
+    static Scanner keyboardInput = new Scanner(System.in);
     static int[] compositeBooleans;
     /**
      * We use x >> 6 (equal to x/64) to get the index of the int x is within. Then use bitwise operators to divide x by 2, take the mod of
@@ -32,10 +33,10 @@ public class Lab5 {
         // Call methods here to test
 //        getRichQuick();
 //         isPrime(179424673);
-         palindromeCheck();
+//         palindromeCheck();
 
         // Finally only call programSelector
-        // programSelector();
+         programSelector(true);
     }
     
     //getRichQuick
@@ -66,7 +67,12 @@ public class Lab5 {
     
     //isPrime
     //Prints a message if a number is prime or not 
-    public static void isPrime(long n) {
+    public static void isPrime() {
+        System.out.println("Please enter a number to check if it is prime:");
+
+        long n = keyboardInput.nextLong();
+        keyboardInput.nextLine();
+
         if (n % 2 == 1) {
             /*
          * We're using each individual bit of an int (32 bit) array as a boolean, and only storing odd numbers, so we can
@@ -144,7 +150,37 @@ public class Lab5 {
         return word.equals(wordBackwards);
     }
 
-    public static void programSelector(){
+    public static void programSelector(boolean keepLooping){
+        System.out.println(" Welcome to Lab5!\n" +
+                "    Enter 1 to check how long it takes to get rich on a magic dollar coin.\n" +
+                "    Enter 2 to check for prime numbers.\n" +
+                "    Enter 3 to enter palindrome words.\n" +
+                "    Enter 4 to re-print the menu.\n" +
+                "    Enter 0 to exit.");
 
+        while (keepLooping) {
+            System.out.println("What is your choice?");
+            int choice = keyboardInput.nextInt();
+            keyboardInput.nextLine();
+
+            switch (choice) {
+                case 1 -> {
+                    getRichQuick();
+                }
+                case 2 -> {
+                    isPrime();
+                }
+                case 3 -> {
+                    palindromeCheck();
+                }
+                case 4 -> {
+                    programSelector(keepLooping);
+                    keepLooping = false;
+                }
+                default -> {
+                    keepLooping = false;
+                }
+            }
+        }
     }
 }
