@@ -30,9 +30,9 @@ public class Lab5 {
 
     public static void main(String[] args)  {
         // Call methods here to test
-        getRichQuick();
+//        getRichQuick();
 //         isPrime(179424673);
-        // palindromeCheck();
+         palindromeCheck();
 
         // Finally only call programSelector
         // programSelector();
@@ -114,24 +114,37 @@ public class Lab5 {
       
         Scanner keyboard = new Scanner(System.in);	// Declare your Scanner object here
 
-        
-        while (keyboard.hasNext()) {		// for each word user enters
+        while (keyboard.hasNext() && keyboard.hasNextLine()) {		// for each word user enters
             userInput = keyboard.next();	// Store each word in a string variable and then do your operations
+
+            if ("stop".equals(userInput)) break; // break the loop if the user enters "stop"
+
             totalWords++;					// Increment number of words as you read each one
             
             System.out.println("  " + totalWords + " " + userInput); // Testing
 
-            // TODO: Call your helper method to check if the word is a palindrome and print the results
-
-            // Finally print "There are x palindromes out of y words provided by user"
+            if (checkIfPalindrome(userInput)) {
+                System.out.println(userInput + " is a palindrome.");
+                palindromeCount++;
+            } else {
+                System.out.println(userInput + " is not a palindrome.");
+            }
         }
+
+        System.out.printf("There are %s palindromes out of %s words provided by user",
+                palindromeCount,
+                totalWords);
     }
 
-    // TODO: Write your helper method for palindromeCheck here
+    public static boolean checkIfPalindrome(String word) {
+        String wordBackwards = "";
+        for (int i = word.length() - 1; i >= 0; i--) {
+            wordBackwards += word.charAt(i);
+        }
+        return word.equals(wordBackwards);
+    }
 
     public static void programSelector(){
-        
-        // TODO: Write your program selection method here
 
     }
 }
