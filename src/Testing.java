@@ -8,9 +8,25 @@ public class Testing {
 //        System.out.println(add(a, b)); // == 1523944
 //        System.out.println(a + b); // == 1523944
 
-        PrintStream out = System.out;
+        System.out.println(listRange(3, 2, -7, 5, 4));
+        System.out.println(listRange(1, 5, 2));
+    }
+    public static int listRange(int... array) {
+        if (array.length == 0) {
+            return 0;
+        } else if (array.length == 2) {
+            return Math.abs(array[0] - array[1]);
+        } else {
+            int max = array[0];
+            int min = array[1];
 
-        out.println(Integer.toBinaryString(-1));
+            for (int val : array) {
+                max = Math.max(max, val);
+                min = Math.min(min, val);
+            }
+
+            return max - min;
+        }
     }
     public static int add(int a, int b) {
         byte bitSize = 31;
