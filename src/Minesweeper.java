@@ -275,6 +275,8 @@ public class Minesweeper {
         printGameBoard();
 
         if (gameOverWin) {
+            // count up the total game time and print your score data
+
             totalTime = System.currentTimeMillis() - startTime;
             System.out.println("You win!\nYour time: " + (totalTime / 1000));
             System.out.println("Mines flagged: " +
