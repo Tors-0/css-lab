@@ -1,4 +1,5 @@
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Testing {
@@ -8,9 +9,60 @@ public class Testing {
 //        System.out.println(add(a, b)); // == 1523944
 //        System.out.println(a + b); // == 1523944
 
-        System.out.println(listRange(3, 2, -7, 5, 4));
-        System.out.println(listRange(1, 5, 2));
+        double[] array = new double[15];
+        Arrays.fill(array, 9.0);
+
+        char[][] a = new char[5][];
+        a[0] = "once upon".toCharArray();
+        a[1] = "a time".toCharArray();
+        a[2] = "there were".toCharArray();
+        a[3] = "three little".toCharArray();
+        a[4] = "programmers".toCharArray();
+
+        a[1][3] = 'e';
+        a[1][4] = 'r';
+        a[1][5] = 'm';
+
+        char[][] arrA = new char[5][12];
+        Arrays.fill(arrA[0], 'A');
+        Arrays.fill(arrA, arrA[0]);
+
+        System.out.println(Arrays.deepToString(arrA));
+
+        int[] data1 = new int[6];
+        int[] data2 = new int[6];
+
+        for (int i = 0; i < 6; i++) {
+            data1[i] = 1;
+            data2[i] = 2;
+        }
+
+        for (int i = 0; i < 6; i++) {
+            data2[i] += data1[i];
+        }
+
+        System.out.println(Arrays.toString(data1));
+        System.out.println(Arrays.toString(data2));
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public static int listRange(int... array) {
         if (array.length == 0) {
             return 0;
