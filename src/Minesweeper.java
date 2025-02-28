@@ -1,22 +1,27 @@
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * A class that can be instantiated and given bindings for input and output
+ * in order to play Minesweeper via text.
+ * @author Rae Johnston
+ */
 public class Minesweeper {
-    static Scanner userIn = new Scanner(System.in);
 
     // format string escape codes
-    static String resetCode = "\033[0m";
-    static String underline = "\033[37;4m";
-    static String tile1Code = "\033[30;42;1m"; // green bg
-    static String tile2Code = "\033[30;43;1m"; // yellow bg
-    static String tile3Code = "\033[30;41;1m"; // red bg
-    static String tile4Code = "\033[30;46;1m"; // cyan bg
-    static String tile5Code = "\033[30;44;1m"; // blue bg
-    static String tile6Code = "\033[30;45;1m"; // purple bg
-    static String tile7Code = "\033[30;47;1m"; // white bg
-    static String tile8Code = "\033[33;40;1m"; // nuclear
+    static final String resetCode = "\033[0m";
+    static final String underline = "\033[37;4m";
+    static final String tile1Code = "\033[30;42;1m"; // green bg
+    static final String tile2Code = "\033[30;43;1m"; // yellow bg
+    static final String tile3Code = "\033[30;41;1m"; // red bg
+    static final String tile4Code = "\033[30;46;1m"; // cyan bg
+    static final String tile5Code = "\033[30;44;1m"; // blue bg
+    static final String tile6Code = "\033[30;45;1m"; // purple bg
+    static final String tile7Code = "\033[30;47;1m"; // white bg
+    static final String tile8Code = "\033[33;40;1m"; // nuclear
 
     // easy difficulty
     public static final int EASY_MINES = 10;
@@ -38,38 +43,77 @@ public class Minesweeper {
     public static final int LUDICROUS_MINES = 192;
 
     // board properties
-    static char[] gameBoard;
-    static boolean[] revealGameBoard;
-    static boolean[] debugRevealGameBoard;
-    static boolean isDebugMode = false;
-    static int boardWidth;
-    static int boardHeight;
+    char[] gameBoard;
+    boolean[] revealGameBoard;
+    boolean[] debugRevealGameBoard;
+    boolean isDebugMode = false;
+    int boardWidth;
+    int boardHeight;
 
     // board icon info
-    static int mines = 0;
-    static int minesRemaining;
+    int mines = 0;
+    int minesRemaining;
     static final char MINE_CHAR = 'X';
     static final char FLAG_CHAR = '\u2691';
-    static final char BLANK_CHAR = ' ';
-    static final String UNOPENED_SPACE = "[\u25a0]";
+    final char BLANK_CHAR = ' ';
+    final String UNOPENED_SPACE = "[\u25a0]";
 
-    static int difficulty;
+    int difficulty;
 
-    static boolean gameOverBad = false;
-    static boolean gameOverWin = false;
+    boolean gameOverBad = false;
+    boolean gameOverWin = false;
     // track this so user cant lose on turn 1
-    static boolean isFirstClick = true;
-    static boolean invalidInput = false;
+    boolean isFirstClick = true;
+    boolean invalidInput = false;
 
     // timekeeping for game score
-    static long startTime;
-    static long totalTime;
+    long startTime;
+    long totalTime;
 
     // board tile indices for renumbering board
-    static List<Integer> mineLocations = new ArrayList<>();
-    static List<Integer> emptyBoardSpaces = new ArrayList<>();
+    List<Integer> mineLocations = new ArrayList<>();
+    List<Integer> emptyBoardSpaces = new ArrayList<>();
+
+    // bindings for input and output stream
+    PrintStream[] output;
+    Scanner input;
+
+    /**
+     * Creates a new game of Minesweeper that can be played in a terminal
+     * @param inputBinding should be a form of live input, else the player will
+     *                     struggle to play the game
+     * @param outputBinding should be in a terminal/terminal emulator that
+     *                      accepts ANSI color format codes
+     */
+    public Minesweeper(Scanner inputBinding, PrintStream... outputBinding) {
+        input = inputBinding;
+        output = outputBinding;
+    }
 
     public static void main(String[] args) {
+        Minesweeper myGame = new Minesweeper(new Scanner(System.in), System.out);
+        myGame.startGame();
+    }
+
+    private void multiPrint(Object out) {
+        for (PrintStream printer : output) {
+            printer.print(out);
+        }
+    }
+
+    private void multiPrintln(Object out) {
+        for (PrintStream printer : output) {
+            printer.println(out);
+        }
+    }
+
+    private void multiPrintf(String format, Object... args) {
+        for (PrintStream printer : output) {
+            printer.printf(format, args);
+        }
+    }
+
+    private void startGame() {
         getUserDifficultyChoice();
 
         initializeGameState(difficulty);
@@ -82,18 +126,47 @@ public class Minesweeper {
 
         do {
             // user input, input parsing, turn execution
-            gameLoop();
+            gameStateUpdate();
 
-            // check if all non-mine tiles have been discovered
-            gameOverWin = evaluateGameWin();
+            if (!invalidInput) { // only if the update succeeded
+                // check if all non-mine tiles have been discovered
+                gameOverWin = evaluateGameWin();
+            }
         } while (!gameOverBad && !gameOverWin);
 
         revealBoardOnGameOver();
+
+        closeBindings();
     }
 
-    private static void gameLoop() {
+    private void closeBindings() {
+        for (PrintStream printer : output) {
+            // don't close system.out prematurely
+            if (!printer.equals(System.out)) {
+                printer.close();
+            }
+        }
+        input.close();
+    }
+
+    /**
+     * uses and modifies the instance variables of a {@link Minesweeper}
+     * object in order to update the game state by one turn.
+     * <br><br>
+     * example:
+     * <pre>
+     * {@code
+     *  while (gameNotOver) {
+     *      gameStateUpdate();
+     *
+     *      // update gameNotOver
+     *  }
+     * }
+     * </pre>
+     */
+    private void gameStateUpdate() {
         if (invalidInput) {
-            System.out.println("Invalid Input!");
+            multiPrintln("Invalid Input!");
             invalidInput = false;
         }
 
@@ -104,9 +177,9 @@ public class Minesweeper {
         printGameBoard();
 
         // collect user input
-        System.out.println("Mines left: " + minesRemaining);
-        System.out.print("What is your choice (\"help\" for help): ");
-        String choice = userIn.nextLine();
+        multiPrintln("Mines left: " + minesRemaining);
+        multiPrint("What is your choice (\"help\" for help): ");
+        String choice = input.nextLine();
         choice = choice.toLowerCase();
 
         // parse user input
@@ -121,7 +194,7 @@ public class Minesweeper {
         }
     }
 
-    private static void evaluateDebugAction(String choice) {
+    private void evaluateDebugAction(String choice) {
         if ("debug.open".equals(choice)) {
             debugRevealGameBoard = revealGameBoard.clone();
             Arrays.fill(revealGameBoard, true);
@@ -132,7 +205,7 @@ public class Minesweeper {
         }
     }
 
-    private static boolean evaluateGameWin() {
+    private boolean evaluateGameWin() {
         if (isDebugMode) return false;
 
         for (Integer i : emptyBoardSpaces) {
@@ -144,7 +217,7 @@ public class Minesweeper {
         return true;
     }
 
-    private static void evaluateUserAction(String choice) {
+    private void evaluateUserAction(String choice) {
         String[] choices = choice.split(" ");
         String action = choices[0];
         int vertical = (int) (choices[1].charAt(0) - 'a');
@@ -170,7 +243,7 @@ public class Minesweeper {
         }
     }
 
-    private static void executeMarkAction(int i) {
+    private void executeMarkAction(int i) {
         if (gameBoard[i] == FLAG_CHAR) {
             minesRemaining++;
             gameBoard[i] = BLANK_CHAR;
@@ -183,7 +256,7 @@ public class Minesweeper {
         }
     }
 
-    private static void executeDigAction(int index) {
+    private void executeDigAction(int index) {
         if (mineLocations.contains(index)) {
             if (isFirstClick) {
                 moveMineOnFirstClick(index);
@@ -200,8 +273,8 @@ public class Minesweeper {
         }
     }
 
-    private static void printHelpGuide() {
-        System.out.println("""
+    private void printHelpGuide() {
+        multiPrintln("""
                 To flag a square, use "mark a5" or "m a5".\
 
                 To dig a square, use "dig a5" or "d a5".\
@@ -209,7 +282,7 @@ public class Minesweeper {
                 Capitalization does not matter.""");
     }
 
-    private static void propagateBoardDiscovery(int i) {
+    private void propagateBoardDiscovery(int i) {
         if (revealGameBoard[i]) return; // early return if tile already open
         revealGameBoard[i] = true;
 
@@ -237,7 +310,7 @@ public class Minesweeper {
         }
     }
 
-    private static void moveMineOnFirstClick(int index) {
+    private void moveMineOnFirstClick(int index) {
         char c;
         int i = -1;
         do { // find a non-mine spot on the board
@@ -262,8 +335,8 @@ public class Minesweeper {
         populateBoardNumbers();
     }
 
-    private static void revealBoardOnGameOver() {
-        System.out.print("\n\n Opening Final Game Board...\n\n");
+    private void revealBoardOnGameOver() {
+        multiPrint("\n\n Opening Final Game Board...\n\n");
 
         if (gameOverWin) {
             for (Integer i : emptyBoardSpaces) {
@@ -276,49 +349,49 @@ public class Minesweeper {
 
         if (gameOverWin) {
             totalTime = System.currentTimeMillis() - startTime;
-            System.out.println("You win!\nYour time: " + (totalTime / 1000));
-            System.out.println("Mines flagged: " +
+            multiPrintln("You win!\nYour time: " + (totalTime / 1000));
+            multiPrintln("Mines flagged: " +
                     (mines - minesRemaining) + " / " + mines);
-            System.out.println("Avg time/mine: " + (totalTime / 1000 / mines));
+            multiPrintln("Avg time/mine: " + (totalTime / 1000 / mines));
 
         } else if (gameOverBad) {
-            System.out.println("Game over.");
+            multiPrintln("Game over.");
         }
     }
 
-    private static void printGameBoard() {
+    private void printGameBoard() {
         char c = 'a';
         for (int i = -1; i < boardHeight; i++) {
             for (int j = -1; j < boardWidth; j++) {
                 c = printGameBoardChar(i, j, c);
             }
-            System.out.println(); // newline after printing full board row
+            multiPrintln(""); // newline after printing full board row
         }
     }
 
-    private static char printGameBoardChar(int i, int j, char c) {
+    private char printGameBoardChar(int i, int j, char c) {
         if (i == -1) {
             if (j == -1) {
-                System.out.print("   ");
+                multiPrint("   ");
             } else {
-                System.out.printf("%s%3s%s", underline, j, resetCode);
+                multiPrintf("%s%3s%s", underline, j, resetCode);
             }
         } else if (j == -1) {
-            System.out.printf("%3s", c + "|");
+            multiPrintf("%3s", c + "|");
             c++;
         } else {
             int index = (i * boardWidth) + j;
             char current = gameBoard[index];
             if (current == MINE_CHAR) {
-                System.out.printf("%3s",
+                multiPrintf("%3s",
                         gameOverBad ? formatTile(current) :
                                 UNOPENED_SPACE
                 );
             } else {
                 if (revealGameBoard[index]) {
-                    System.out.print(formatTile(current));
+                    multiPrint(formatTile(current));
                 } else {
-                    System.out.print(UNOPENED_SPACE);
+                    multiPrint(UNOPENED_SPACE);
                 }
             }
         }
@@ -341,7 +414,7 @@ public class Minesweeper {
         };
     }
 
-    private static void populateBoardNumbers() {
+    private void populateBoardNumbers() {
         repopulateMinefield();
 
         for (int i = 0; i < gameBoard.length; i++) {
@@ -376,7 +449,7 @@ public class Minesweeper {
         }
     }
 
-    private static void populateMinefield() {
+    private void populateMinefield() {
         for (int i = 0; i < gameBoard.length; i++) {
             emptyBoardSpaces.add(i);
         }
@@ -389,7 +462,7 @@ public class Minesweeper {
         }
     }
 
-    private static void repopulateMinefield() {
+    private void repopulateMinefield() {
         for (int i = 0; i < gameBoard.length; i++) {
             if (gameBoard[i] != FLAG_CHAR) {
                 gameBoard[i] = BLANK_CHAR;
@@ -402,21 +475,21 @@ public class Minesweeper {
         }
     }
 
-    private static void getUserDifficultyChoice() {
+    private void getUserDifficultyChoice() {
         String diffString;
         while (true) {
-            System.out.println("Please select a difficulty (0-4): ");
-            diffString = userIn.nextLine();
+            multiPrintln("Please select a difficulty (0-4): ");
+            diffString = input.nextLine();
             String[] legalDifficulties = {"0", "1", "2", "3", "4", "-1"};
             if (Arrays.asList(legalDifficulties).contains(diffString)) {
                 break;
             }
-            System.out.print("Invalid input: ");
+            multiPrint("Invalid input: ");
         }
         difficulty = Integer.parseInt(diffString);
     }
 
-    private static void initializeGameState(int difficulty) {
+    private void initializeGameState(int difficulty) {
         String difficultyStr = "";
         switch (difficulty) {
             case 0 -> {
@@ -450,12 +523,12 @@ public class Minesweeper {
                 difficultyStr = "Ludicrous";
             }
             default -> {
-                System.out.println("Custom difficulty:\n" +
+                multiPrintln("Custom difficulty:\n" +
                         "Enter board height (1-26) and width (1-99)," +
                         "separated by spaces (whole numbers only):");
-                boardHeight = userIn.nextInt();
-                boardWidth = userIn.nextInt();
-                userIn.nextLine();
+                boardHeight = input.nextInt();
+                boardWidth = input.nextInt();
+                input.nextLine();
 
                 float minePercentage = (float) ((Math.random() * 0.28) + 0.12);
                 mines = (int) (boardWidth * boardHeight * minePercentage);
@@ -470,6 +543,6 @@ public class Minesweeper {
 
         minesRemaining = mines;
 
-        System.out.printf("You have selected %s difficulty.\n", difficultyStr);
+        multiPrintf("You have selected %s difficulty.\n", difficultyStr);
     }
 }
