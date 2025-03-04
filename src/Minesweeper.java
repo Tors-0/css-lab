@@ -91,7 +91,10 @@ public class Minesweeper {
     }
 
     public static void main(String[] args) {
-        Minesweeper myGame = new Minesweeper(new Scanner(System.in), System.out);
+        Minesweeper myGame = new Minesweeper(
+                new Scanner(System.in),
+                System.out
+        );
         myGame.startGame();
     }
 
