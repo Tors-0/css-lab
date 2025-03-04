@@ -51,7 +51,9 @@ public class Lab8a {
         System.out.println("Count 5s in array1: " + countTarget(array1, 5));
         System.out.println();
 
-        // TODO: Add tests for exercise 6
+        System.out.println("Exercise 6:");
+        System.out.println(Arrays.toString( nums ));
+        System.out.println(Arrays.toString( stretchArray(nums) ));
 
     }
     
@@ -166,15 +168,27 @@ public class Lab8a {
     }
 
     /**
-     * Write a description of the method here
+     * Takes each value from the array and cuts it in half, larger number first
+     * if the number is odd, split evenly if the number is even
      * 
-     * @param array
+     * @param array array to be stretched, not modified
      */
     public static int[] stretchArray(int[] array) {
         int[] finalArray = new int[array.length * 2];
 
+        int outputIndex = 0;
 
+        for (int i : array) {
+            if (i % 2 == 0) {
+                finalArray[outputIndex] = i / 2;
+            } else {
+                finalArray[outputIndex] = (i / 2) + 1;
+            }
 
-        return null; // Remove this later
+            finalArray[outputIndex + 1] = i / 2;
+            outputIndex += 2;
+        }
+
+        return finalArray;
     }
 }
