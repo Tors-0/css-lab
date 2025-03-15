@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +48,7 @@ public class Minesweeper {
     char[] gameBoard;
     boolean[] revealGameBoard;
     boolean[] debugRevealGameBoard;
+    boolean[][] revealBoards;
     boolean isDebugMode = false;
     int boardWidth;
     int boardHeight;
@@ -68,7 +71,7 @@ public class Minesweeper {
 
     // timekeeping for game score
     long startTime;
-    long totalTime;
+    double totalTime;
 
     // board tile indices for renumbering board
     List<Integer> mineLocations = new ArrayList<>();
@@ -77,6 +80,10 @@ public class Minesweeper {
     // bindings for input and output stream
     PrintStream[] output;
     Scanner input;
+
+    // magic number avoidance
+    private final int REVEAL_BOARD_INDEX = 0;
+    private final int DEBUG_REVEAL_BOARD_INDEX = 1;
 
     /**
      * Creates a new game of Minesweeper that can be played in a terminal
@@ -95,27 +102,49 @@ public class Minesweeper {
                 new Scanner(System.in),
                 System.out
         );
+
         myGame.startGame();
     }
 
+    /**
+     * .print() functionality for multiple print streams
+     *
+     * @param out the value to be printed
+     */
     private void multiPrint(Object out) {
         for (PrintStream printer : output) {
             printer.print(out);
         }
     }
 
+    /**
+     * .println() functionality for multiple print streams
+     *
+     * @param out the value to be printed
+     */
     private void multiPrintln(Object out) {
         for (PrintStream printer : output) {
             printer.println(out);
         }
     }
 
+    /**
+     * .printf() functionality for multiple print streams
+     *
+     * @param format the string to be formatted and printed
+     * @param args the arguments to the format string
+     */
     private void multiPrintf(String format, Object... args) {
         for (PrintStream printer : output) {
             printer.printf(format, args);
         }
     }
 
+    /**
+     * runs the full scope of the game. creates the board, picks difficulty,
+     * executes multiple turns until the game is won or lost, and then reveals
+     * the board and closes the print streams and input stream.
+     */
     private void startGame() {
         getUserDifficultyChoice();
 
@@ -142,6 +171,12 @@ public class Minesweeper {
         closeBindings();
     }
 
+    /**
+     * Sensitively closes the bound {@link PrintStream}s and input
+     * {@link Scanner}. <br>
+     * Will not close the PrintStream if it is {@link System#out} to allow
+     * the program to continue printing to console if necessary
+     */
     private void closeBindings() {
         for (PrintStream printer : output) {
             // don't close system.out prematurely
@@ -174,7 +209,8 @@ public class Minesweeper {
         }
 
         if (!isDebugMode) {
-            debugRevealGameBoard = revealGameBoard.clone();
+            revealBoards[DEBUG_REVEAL_BOARD_INDEX] =
+                    revealBoards[REVEAL_BOARD_INDEX].clone();
         }
 
         printGameBoard();
@@ -197,29 +233,47 @@ public class Minesweeper {
         }
     }
 
+    /**
+     * If the user enters a String starting with "{@code debug.}" for their move,
+     * this method will validate that action and modify the board to reflect it
+     * @param choice the user-entered String to evaluate
+     */
     private void evaluateDebugAction(String choice) {
         if ("debug.open".equals(choice)) {
-            debugRevealGameBoard = revealGameBoard.clone();
-            Arrays.fill(revealGameBoard, true);
+            revealBoards[DEBUG_REVEAL_BOARD_INDEX] =
+                    revealBoards[REVEAL_BOARD_INDEX].clone();
+            Arrays.fill(revealBoards[REVEAL_BOARD_INDEX], true);
             isDebugMode = true;
         } else if ("debug.close".equals(choice)) {
-            revealGameBoard = debugRevealGameBoard.clone();
+            revealBoards[REVEAL_BOARD_INDEX] =
+                    revealBoards[DEBUG_REVEAL_BOARD_INDEX].clone();
             isDebugMode = false;
         }
     }
 
+    /**
+     * Checks if the player has won the game.
+     * <br><br>
+     * Win Condition: All empty spaces (those without bombs) have been dug
+     * @return true if the game is won, false otherwise
+     */
     private boolean evaluateGameWin() {
         if (isDebugMode) return false;
 
         for (Integer i : emptyBoardSpaces) {
             // if any empty space hasn't been turned, the game isn't over
-            if (!revealGameBoard[i]) return false;
+            if (!revealBoards[REVEAL_BOARD_INDEX][i]) return false;
         }
 
         // if we pass every empty space without finding an unturned one
         return true;
     }
 
+    /**
+     * Takes in a String representing the user's action this turn, then
+     * evaluates the outcome of that action and executes it
+     * @param choice the String from user input
+     */
     private void evaluateUserAction(String choice) {
         String[] choices = choice.split(" ");
         String action = choices[0];
@@ -246,19 +300,33 @@ public class Minesweeper {
         }
     }
 
-    private void executeMarkAction(int i) {
-        if (gameBoard[i] == FLAG_CHAR) {
+    /**
+     * Flag the tile number passed into this method. tiles are numbered from 0,
+     * starting at the top left tile and increasing rightwards, with each row
+     * looping down to the next row
+     * @param index tile number (should be parsed from user action, otherwise
+     *              good luck figuring out what tile is what number)
+     */
+    private void executeMarkAction(int index) {
+        if (gameBoard[index] == FLAG_CHAR) {
             minesRemaining++;
-            gameBoard[i] = BLANK_CHAR;
-            revealGameBoard[i] = false;
+            gameBoard[index] = BLANK_CHAR;
+            revealBoards[REVEAL_BOARD_INDEX][index] = false;
             populateBoardNumbers();
         } else {
-            gameBoard[i] = FLAG_CHAR;
+            gameBoard[index] = FLAG_CHAR;
             minesRemaining--;
-            revealGameBoard[i] = true;
+            revealBoards[REVEAL_BOARD_INDEX][index] = true;
         }
     }
 
+    /**
+     * Dig up the tile number passed into this method. tiles are numbered from
+     * 0, starting at the top left tile and increasing rightwards, with each row
+     * looping down to the next row
+     * @param index tile number (should be parsed from user action, otherwise
+     *             good luck figuring out what tile is what number)
+     */
     private void executeDigAction(int index) {
         if (mineLocations.contains(index)) {
             if (isFirstClick) {
@@ -270,12 +338,17 @@ public class Minesweeper {
             if (gameBoard[index] == FLAG_CHAR) {
                 executeMarkAction(index);
             }
-            if (!revealGameBoard[index] && gameBoard[index] != MINE_CHAR) {
+            if (!revealBoards[REVEAL_BOARD_INDEX][index] &&
+                    gameBoard[index] != MINE_CHAR) {
                 propagateBoardDiscovery(index);
             }
         }
     }
 
+    /**
+     * A simple guide that tells the player how to format their input to
+     * match the parsing syntax
+     */
     private void printHelpGuide() {
         multiPrintln("""
                 To flag a square, use "mark a5" or "m a5".\
@@ -285,9 +358,31 @@ public class Minesweeper {
                 Capitalization does not matter.""");
     }
 
+    /**
+     * When a player digs up a tile, if that tile has no mines and no number,
+     * any adjacent empty or number tiles should be revealed in order to reduce
+     * the amount of blind digging required and also speed up the game.
+     * <br>
+     * This method is called recursively to create a depth-first search, however
+     * this method also checks whether a tile was revealed already in order to
+     * avoid an infinite recursion loop that would create a memory leak and
+     * crash the program.
+     * <br>
+     * If the user clicks on a tile with a number, but it is the first turn
+     * still, we should reveal nearby tiles anyway in order to avoid requiring
+     * the player to blindly dig around their first guess in following turns.
+     * <br><br>
+     * (This is done because I didn't feel like implementing a better solution)
+     * <br>
+     * (For future reference that solution would be to not place any mines
+     * until after the user makes their first click, and blacklisting the area
+     * around the first tile from getting any mines, then revealing as normal)
+     * @param i the starting tile for this propagation operation.
+     */
     private void propagateBoardDiscovery(int i) {
-        if (revealGameBoard[i]) return; // early return if tile already open
-        revealGameBoard[i] = true;
+        // early return if tile already open
+        if (revealBoards[REVEAL_BOARD_INDEX][i]) return;
+        revealBoards[REVEAL_BOARD_INDEX][i] = true;
 
         // early return if tile has number
         if (gameBoard[i] != BLANK_CHAR && !isFirstClick) return;
@@ -306,13 +401,23 @@ public class Minesweeper {
         for (int l = left; l <= right; l++) {
             for (int w = top; w <= bottom; w++) {
                 int index = i + (l) + (w * boardWidth);
-                if (gameBoard[index] != MINE_CHAR && !revealGameBoard[index]) {
+                if (gameBoard[index] != MINE_CHAR &&
+                        !revealBoards[REVEAL_BOARD_INDEX][index]) {
                     propagateBoardDiscovery(index);
                 }
             }
         }
     }
 
+    /**
+     * Because sometimes you just get really, really unlucky. Most versions of
+     * Minesweeper have some mechanism to prevent you from accidentally ending
+     * the entire game on your very first move according to
+     * <a href="https://en.wikipedia.org/wiki/Minesweeper_(video_game)
+     * #Objective_and_strategy">Minesweeper (Wikipedia)</a>
+     * (&nbsp;accessed Mar 13, 2025&nbsp;)
+     * @param index the index of the tile containing the unfortunate mine
+     */
     private void moveMineOnFirstClick(int index) {
         char c;
         int i = -1;
@@ -332,12 +437,21 @@ public class Minesweeper {
         mineLocations.add(i);
         mineLocations.remove((Integer) index);
 
-        revealGameBoard[index] = true;
+        revealBoards[REVEAL_BOARD_INDEX][index] = true;
 
         // recalculate the board numbers
         populateBoardNumbers();
     }
 
+    /**
+     * Because the game is over, there's no reason to hide anything now. All the
+     * cards are on the table, which is a silly expression, because this game
+     * has no cards in it. But if it did you could see them now. Even though
+     * this game isn't played on a table.
+     * <br><br>
+     * Reveals every mine (but leaves existing flag markers in place) and
+     * removes the covers on any undiscovered blank or numbered tiles.
+     */
     private void revealBoardOnGameOver() {
         multiPrint("\n\n Opening Final Game Board...\n\n");
 
@@ -347,23 +461,60 @@ public class Minesweeper {
             }
         }
 
-        Arrays.fill(revealGameBoard, true);
+        Arrays.fill(revealBoards[REVEAL_BOARD_INDEX], true);
         printGameBoard();
 
         if (gameOverWin) {
             // count up the total game time and print your score data
 
             totalTime = System.currentTimeMillis() - startTime;
-            multiPrintln("You win!\nYour time: " + (totalTime / 1000));
+            multiPrintf("You win!\nYour time: %.1f%n", (totalTime / 1000));
             multiPrintln("Mines flagged: " +
                     (mines - minesRemaining) + " / " + mines);
-            multiPrintln("Avg time/mine: " + (totalTime / 1000 / mines));
+            multiPrintf("Avg time/mine: %.1f%n", (totalTime / 1000 / mines));
 
+            PrintStream fileOutput = null;
+            try {
+                File file = new File("minesweeper_highscores.csv");
+                // ensure file exists
+                if (file.createNewFile()) {
+                    fileOutput = new PrintStream(file);
+                    fileOutput.println("Name, Difficulty, Time, Time/mine");
+                } else {
+                    fileOutput = new PrintStream(file);
+                }
+            } catch (Exception e) {
+                System.out.println("Error occurred while saving high-score " +
+                        e.getMessage());
+                return;
+            }
+            System.out.print("\nPlease enter your name (limit 10 characters): ");
+            String name = input.nextLine().trim();
+            if (name.length() > 10) {
+                // cut length to 10
+                name = name.substring(0, 10);
+            }
+
+            fileOutput.printf("%s, %d, %.1f, %.1f%n",
+                    name,
+                    difficulty,
+                    totalTime / 1000,
+                    ( totalTime / 1000 / mines));
+
+            fileOutput.close();
         } else if (gameOverBad) {
             multiPrintln("Game over.");
         }
     }
 
+    /**
+     * Goes through each tile on the board, as well as the tiles outside the
+     * board on the left and top edge in order to print the coordinate system.
+     * (In order to help the player select tiles more easily)
+     * <br>
+     * Calls the helper method {@link Minesweeper#printGameBoardChar} for each
+     * tile.
+     */
     private void printGameBoard() {
         char c = 'a';
         for (int i = -1; i < boardHeight; i++) {
@@ -374,6 +525,18 @@ public class Minesweeper {
         }
     }
 
+    /**
+     * Prints out the character from the game board at the current coordinates.
+     * This method and this method alone use 1-based indexing, as the 0 indices
+     * are assumed to be the edges of the board and print the board coordinates.
+     * {@code a,b,c...} are printed downwards along the left edge of the board,
+     * and {@code 0,1,2,3...} are printed rightwards along the top edge of the
+     * board.
+     * @param i Horizontal position of the tile being printed
+     * @param j Vertical position of the tile being printed
+     * @param c current character for the board-edge coordinates
+     * @return updated character for the board-edge coordinates
+     */
     private char printGameBoardChar(int i, int j, char c) {
         if (i == -1) {
             if (j == -1) {
@@ -393,7 +556,7 @@ public class Minesweeper {
                                 UNOPENED_SPACE
                 );
             } else {
-                if (revealGameBoard[index]) {
+                if (revealBoards[REVEAL_BOARD_INDEX][index]) {
                     multiPrint(formatTile(current));
                 } else {
                     multiPrint(UNOPENED_SPACE);
@@ -403,22 +566,39 @@ public class Minesweeper {
         return c;
     }
 
-    private static String formatTile(char num) {
-        return switch (num) {
-            case '1' -> tile1Code + " " + num + " " + resetCode;
-            case '2' -> tile2Code + " " + num + " " + resetCode;
-            case '3' -> tile3Code + " " + num + " " + resetCode;
-            case '4' -> tile4Code + " " + num + " " + resetCode;
-            case '5' -> tile5Code + " " + num + " " + resetCode;
-            case '6' -> tile6Code + " " + num + " " + resetCode;
-            case '7' -> tile7Code + " " + num + " " + resetCode;
-            case '8' -> tile8Code + " " + num + " " + resetCode;
+    /**
+     * Formats the tile character with the appropriate color and/or surrounding
+     * characters. This is done to allow the board to be kept as characters, but
+     * still output looking slightly nicer.
+     * @param c The character to be formatted. This is checked against class
+     *          constants for the mine and flag characters to determine if it is
+     *          one of those types.
+     * @return The 3 (visually) character length String of formatted text. May
+     * contain more than 3 characters, but any characters over 3 are format tags
+     * and do not take up any width to display.
+     */
+    private static String formatTile(char c) {
+        return switch (c) {
+            case '1' -> tile1Code + " " + c + " " + resetCode;
+            case '2' -> tile2Code + " " + c + " " + resetCode;
+            case '3' -> tile3Code + " " + c + " " + resetCode;
+            case '4' -> tile4Code + " " + c + " " + resetCode;
+            case '5' -> tile5Code + " " + c + " " + resetCode;
+            case '6' -> tile6Code + " " + c + " " + resetCode;
+            case '7' -> tile7Code + " " + c + " " + resetCode;
+            case '8' -> tile8Code + " " + c + " " + resetCode;
             case MINE_CHAR -> "{" + MINE_CHAR + "}";
             case FLAG_CHAR -> " " + FLAG_CHAR + " ";
             default -> "   ";
         };
     }
 
+    /**
+     * Must be called after the mines have been placed on the board already.
+     * Places the number tiles around mines.
+     * <br>
+     * Prefers using more computation rather than more memory.
+     */
     private void populateBoardNumbers() {
         repopulateMinefield();
 
@@ -454,6 +634,14 @@ public class Minesweeper {
         }
     }
 
+    /**
+     * Should be called before {@link Minesweeper#populateBoardNumbers()},
+     * places mines onto the board with probably random distribution.
+     * <br>
+     * I do not know if placing them at coordinates that are uniformly random in
+     * one axis results in a location that is still uniformly distributed in two
+     * axes.
+     */
     private void populateMinefield() {
         for (int i = 0; i < gameBoard.length; i++) {
             emptyBoardSpaces.add(i);
@@ -467,6 +655,9 @@ public class Minesweeper {
         }
     }
 
+    /**
+     * 
+     */
     private void repopulateMinefield() {
         for (int i = 0; i < gameBoard.length; i++) {
             if (gameBoard[i] != FLAG_CHAR) {
@@ -543,8 +734,11 @@ public class Minesweeper {
         gameBoard = new char[boardHeight * boardWidth];
         revealGameBoard = new boolean[boardHeight * boardWidth];
         debugRevealGameBoard = new boolean[boardHeight * boardWidth];
+        revealBoards = new boolean[][]{revealGameBoard, debugRevealGameBoard};
+
         Arrays.fill(gameBoard, BLANK_CHAR);
-        Arrays.fill(revealGameBoard, false);
+        Arrays.fill(revealBoards[REVEAL_BOARD_INDEX], false);
+
 
         minesRemaining = mines;
 
